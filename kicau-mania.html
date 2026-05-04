@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KICAU MANIA DETECTOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFE4E1;
+    --green: #8B4A5A;
+    --cyan: #D97AB0;
+    --red: #E63384;
+    --yellow: #FF69B4;
+    --dim-green: #C99BA5;
+    --dim-cyan: #F5C0D3;
+    --glow-green: 0 0 8px #39ff41, 0 0 20px #39ff41aa;
+    --glow-cyan: 0 0 8px #00e5ff, 0 0 20px #00e5ffaa;
+    --glow-red: 0 0 8px #ff003c, 0 0 20px #ff003caa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    cursor: crosshair;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: transparent;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  #layarLoading {
+    position: fixed; inset: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    gap: 24px;
+  }
+
+  .judul-loading {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(20px, 4vw, 40px);
+    font-weight: 900;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 6px;
+    animation: denyut 1.5s ease-in-out infinite;
+  }
+
+  .subjudul-loading {
+    font-size: 12px;
+    color: var(--green);
+    letter-spacing: 3px;
+    opacity: 0.7;
+  }
+
+  .bungkus-progress {
+    width: min(400px, 80vw);
+    height: 6px;
+    background: var(--dim-green);
+    border: 1px solid var(--green);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .isi-progress {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    box-shadow: var(--glow-cyan);
+    transition: width 0.3s ease;
+  }
+
+  .status-loading {
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    min-height: 16px;
+  }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: rgba(0,0,0,0.85);
+    border-bottom: 1px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 4px;
+  }
+
+  .grup-status {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .item-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #555;
+    transition: color 0.3s;
+  }
+
+  .item-status .bulat {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #333;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .item-status.nyala { color: var(--green); }
+  .item-status.nyala .bulat {
+    background: var(--green);
+    box-shadow: var(--glow-green);
+    animation: kedip 1s ease-in-out infinite;
+  }
+
+  .item-status.kicau-nyala { color: var(--yellow) !important; }
+  .item-status.kicau-nyala .bulat {
+    background: var(--yellow) !important;
+    box-shadow: 0 0 8px #ffe600, 0 0 20px #ffe600aa !important;
+  }
+
+  #footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 40px;
+    background: rgba(0,0,0,0.85);
+    border-top: 1px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    font-size: 11px;
+    color: var(--dim-cyan);
+  }
+
+  .metrik { display: flex; align-items: center; gap: 8px; }
+  .label-metrik { color: #444; }
+  .nilai-metrik { color: var(--cyan); font-weight: bold; min-width: 40px; text-align: right; }
+  .nilai-metrik.bahaya { color: var(--yellow) !important; text-shadow: 0 0 8px #ffe600; }
+
+  #bungkusVideo {
+    position: fixed;
+    inset: 52px 0 40px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #videoKamera {
+    position: absolute;
+    width: 90%; height: 90%;
+    object-fit: contain;
+    opacity: 0.85;
+    transform: scaleX(-1);
+  }
+
+  #kanvasOutput {
+    position: absolute;
+    width: 90%; height: 90%;
+    object-fit: contain;
+    transform: scaleX(-1);
+  }
+
+  #bannerKicau {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  #bannerKicau.tampil { display: flex; }
+
+  .teks-banner {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(28px, 6vw, 72px);
+    font-weight: 900;
+    color: var(--yellow);
+    letter-spacing: 8px;
+    text-shadow: 0 0 10px #FF69B4, 0 0 30px #FF69B4, 0 0 60px #FF69B4aa, 2px 2px 0 #E63384, -2px -2px 0 #D97AB0;
+    animation: glitch 0.4s infinite;
+    display: inline-block;
+  }
+
+  .subteks-banner {
+    font-size: 12px;
+    color: var(--cyan);
+    letter-spacing: 6px;
+    text-shadow: var(--glow-cyan);
+    animation: denyut 0.6s ease-in-out infinite;
+    margin-top: 8px;
+  }
+
+  .gambar-kucing {
+    position: fixed;
+    width: 130px; height: 130px;
+    object-fit: cover;
+    display: none;
+    z-index: 300;
+    filter: drop-shadow(0 0 10px #FF69B4) drop-shadow(0 0 20px #E6338488);
+    border-radius: 4px;
+  }
+
+  .gambar-kucing.tampil { display: block; }
+  video.gambar-kucing { background-color: #000; }
+
+  #kucing1 { top: 60px;    left: 20px;  animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0s; }
+  #kucing2 { top: 60px;    right: 20px; animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0.1s; }
+  #kucing3 { bottom: 50px; left: 20px;  animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0.2s; }
+  #kucing4 { bottom: 50px; right: 20px; animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0.3s; }
+  #kucing5 { top: 50%; left: 20px;  transform: translateY(-50%); animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0.4s; }
+  #kucing6 { top: 50%; right: 20px; transform: translateY(-50%); animation: loncat 0.5s ease-in-out infinite alternate; animation-delay: 0.5s; }
+
+  .grid-latar {
+    position: fixed;
+    inset: 52px 0 40px 0;
+    background-image:
+      linear-gradient(rgba(217,122,176,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(217,122,176,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .sudut { position: fixed; width: 20px; height: 20px; z-index: 50; pointer-events: none; }
+  .sudut-kiri-atas   { top: 52px;    left: 0;  border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .sudut-kanan-atas  { top: 52px;    right: 0; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+  .sudut-kiri-bawah  { bottom: 40px; left: 0;  border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .sudut-kanan-bawah { bottom: 40px; right: 0; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+  @keyframes kedip  { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes denyut { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes loncat { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+  @keyframes glitch {
+    0%   { text-shadow: 2px 2px 0 #E63384, -2px -2px 0 #D97AB0, 0 0 30px #FF69B4; transform: translateX(0); }
+    20%  { text-shadow: -2px 2px 0 #E63384, 2px -2px 0 #D97AB0, 0 0 30px #FF69B4; transform: translateX(3px); }
+    40%  { text-shadow: 2px -2px 0 #E63384, -2px 2px 0 #D97AB0, 0 0 30px #FF69B4; transform: translateX(-3px); }
+    60%  { text-shadow: -2px -2px 0 #E63384, 2px 2px 0 #D97AB0, 0 0 60px #FF69B4aa; transform: translateX(0); }
+    80%  { text-shadow: 3px 0 0 #E63384, -3px 0 0 #D97AB0, 0 0 30px #FF69B4; transform: scaleX(1.02) translateX(0); }
+    100% { text-shadow: 2px 2px 0 #E63384, -2px -2px 0 #D97AB0, 0 0 30px #FF69B4; transform: translateX(0); }
+  }
+
+  body.mode-kicau { animation: kilat 0.5s ease-in-out infinite alternate; }
+  @keyframes kilat { from { background: #FFE4E1; } to { background: #FFC0CB; } }
+
+  .bungkus-bar-jarak { width: 100px; height: 4px; background: #111; border: 1px solid #333; border-radius: 2px; overflow: hidden; }
+  .isi-bar-jarak { height: 100%; background: var(--cyan); transition: width 0.1s, background 0.2s; }
+  .isi-bar-jarak.bahaya { background: var(--red); box-shadow: var(--glow-red); }
+</style>
+</head>
+<body>
+
+<div id="layarLoading">
+  <div class="judul-loading">◈ KICAU MANIA ◈</div>
+  <div class="subjudul-loading">PUNGGUNG TANGAN DETECTOR SYSTEM v2.4</div>
+  <div class="bungkus-progress">
+    <div class="isi-progress" id="isiProgress"></div>
+  </div>
+  <div class="status-loading" id="statusLoading">INITIALIZING MEDIAPIPE ENGINE...</div>
+</div>
+
+<div id="header">
+  <div class="logo">◈ KICAU MANIA DETECTOR</div>
+  <div class="grup-status">
+    <div class="item-status" id="statusKam"><div class="bulat"></div>CAM</div>
+    <div class="item-status" id="statusTangan"><div class="bulat"></div>HAND</div>
+    <div class="item-status" id="statusMuka"><div class="bulat"></div>FACE</div>
+    <div class="item-status" id="statusKicau"><div class="bulat"></div>KICAU</div>
+  </div>
+</div>
+
+<div class="sudut sudut-kiri-atas"></div>
+<div class="sudut sudut-kanan-atas"></div>
+<div class="sudut sudut-kiri-bawah"></div>
+<div class="sudut sudut-kanan-bawah"></div>
+<div class="grid-latar"></div>
+
+<div id="bungkusVideo">
+  <video id="videoKamera" autoplay playsinline muted></video>
+  <canvas id="kanvasOutput"></canvas>
+</div>
+
+<div id="bannerKicau">
+  <div class="teks-banner">⚡ KICAU MANIA! ⚡</div>
+  <div class="subteks-banner">PUNGGUNG TANGAN DETECTED</div>
+</div>
+
+<img class="gambar-kucing" id="kucing1" src="cikau.gif" alt="">
+<video class="gambar-kucing" id="kucing2" src="windah.mp4" autoplay loop muted playsinline></video>
+<img class="gambar-kucing" id="kucing3" src="cikau.gif" alt="">
+<video class="gambar-kucing" id="kucing4" src="windah.mp4" autoplay loop muted playsinline></video>
+<img class="gambar-kucing" id="kucing5" src="cikau.gif" alt="">
+<video class="gambar-kucing" id="kucing6" src="windah.mp4" autoplay loop muted playsinline></video>
+
+<audio id="audioKicau" loop src="cikaumania.mpeg"></audio>
+
+<div id="footer">
+  <div class="metrik">
+    <span class="label-metrik">SYS:</span>
+    <span style="color:var(--green);font-size:10px;">KICAU MANIA DETECTOR // MEDIAPIPE v0.10</span>
+  </div>
+  <div style="display:flex;gap:24px;align-items:center;">
+    <div class="metrik">
+      <span class="label-metrik">DIST:</span>
+      <div class="bungkus-bar-jarak">
+        <div class="isi-bar-jarak" id="barJarak" style="width:0%"></div>
+      </div>
+      <span class="nilai-metrik" id="nilaiJarak">-.---</span>
+    </div>
+    <div class="metrik">
+      <span class="label-metrik">FPS:</span>
+      <span class="nilai-metrik" id="nilaiFps">--</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+<script>
+const video  = document.getElementById('videoKamera');
+const kanvas = document.getElementById('kanvasOutput');
+const ctx    = kanvas.getContext('2d');
+const audio  = document.getElementById('audioKicau');
+const banner = document.getElementById('bannerKicau');
+const kucing = [1,2,3,4,5,6].map(i => document.getElementById('kucing'+i));
+
+const AMBANG_JARAK = 0.12;
+let sedangMainAudio = false;
+let modeKicauAktif  = false;
+let hasilTerakhir   = { tangan: null, muka: null };
+let hitungFps = 0, waktuFpsLalu = performance.now();
+
+// === TAMBAHAN: variabel kibas ===
+let posXSebelumnya = null;
+let arahKibas = null;
+let timerHilangKibas = null;
+// ================================
+
+const sambunganJari = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],
+  [0,17]
+];
+
+const namaLandmark = { 0:'WRIST', 4:'THUMB', 8:'INDEX', 12:'MIDDLE', 16:'RING', 20:'PINKY' };
+const titikMukaUtama = [0,1,4,10,13,14,33,37,40,61,78,152,159,263,270,291,308,324,374,385,386,388,397,454];
+
+// warna per jari
+const warnaJari = [
+  '#FF1493','#FF1493','#FF1493','#FF1493','#FF1493', // thumb 0-4
+  '#FF69B4','#FF69B4','#FF69B4','#FF69B4',           // index 5-8
+  '#FFB6C1','#FFB6C1','#FFB6C1','#FFB6C1',           // middle 9-12
+  '#FFC0CB','#FFC0CB','#FFC0CB','#FFC0CB',           // ring 13-16
+  '#D97AB0','#D97AB0','#D97AB0','#D97AB0'            // pinky 17-20
+];
+
+function isiProgress(persen, pesan) {
+  document.getElementById('isiProgress').style.width = persen + '%';
+  document.getElementById('statusLoading').textContent = pesan;
+}
+
+function sesuaikanKanvas() {
+  const wrap = document.getElementById('bungkusVideo');
+  kanvas.width  = video.videoWidth  || video.clientWidth;
+  kanvas.height = video.videoHeight || video.clientHeight;
+}
+window.addEventListener('resize', sesuaikanKanvas);
+
+// === TAMBAHAN: fungsi deteksi kibas ===
+function deteksiKibas(lms) {
+  const posXSekarang = lms[0].x; // wrist
+
+  if (posXSebelumnya !== null) {
+    const delta = posXSekarang - posXSebelumnya;
+    if (delta > 0.04) {
+      tampilArahKibas('LEFT');
+    } else if (delta < -0.04) {
+      tampilArahKibas('RIGHT');
+    }
+  }
+
+  posXSebelumnya = posXSekarang;
+}
+
+function tampilArahKibas(arah) {
+  arahKibas = arah;
+  clearTimeout(timerHilangKibas);
+  timerHilangKibas = setTimeout(() => { arahKibas = null; }, 800);
+}
+// ======================================
+
+// landmark MediaPipe sudah normalized 0-1, tinggal kali L dan T
+function gambarTangan(lms, L, T) {
+  for (const [a, b] of sambunganJari) {
+    const warna = warnaJari[a];
+    ctx.beginPath();
+    ctx.moveTo(lms[a].x * L, lms[a].y * T);
+    ctx.lineTo(lms[b].x * L, lms[b].y * T);
+    ctx.strokeStyle = warna;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = warna;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  lms.forEach((lm, i) => {
+    const x = lm.x * L, y = lm.y * T;
+    const penting = namaLandmark[i] !== undefined;
+
+    ctx.beginPath();
+    ctx.arc(x, y, penting ? 8 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(230,51,132,0.2)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, penting ? 5 : 3, 0, Math.PI * 2);
+    ctx.fillStyle = penting ? '#E63384' : '#D97AB0';
+    ctx.shadowColor = penting ? '#E63384' : '#D97AB0';
+    ctx.shadowBlur  = penting ? 14 : 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (penting) {
+      ctx.fillStyle = '#E63384';
+      ctx.font = 'bold 8px Share Tech Mono, monospace';
+      ctx.fillText(namaLandmark[i], x + 6, y - 5);
+    }
+    if (i === 9) {
+      ctx.fillStyle = '#FF69B4';
+      ctx.font = 'bold 9px Share Tech Mono, monospace';
+      ctx.fillText('DORSUM', x + 6, y + 4);
+    }
+  });
+}
+
+function gambarMuka(lms, L, T) {
+  titikMukaUtama.forEach(i => {
+    if (!lms[i]) return;
+    const x = lms[i].x * L, y = lms[i].y * T;
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(217,122,176,0.5)';
+    ctx.shadowColor = '#D97AB0';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  if (lms[13]) {
+    const x = lms[13].x * L, y = lms[13].y * T;
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(230,51,132,0.7)';
+    ctx.shadowColor = '#E63384';
+    ctx.shadowBlur = 14;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#E63384';
+    ctx.font = 'bold 8px Share Tech Mono, monospace';
+    ctx.fillText('LIP', x + 7, y - 3);
+  }
+}
+
+function hitungJarak3D(a, b) {
+  return Math.sqrt(
+    Math.pow(a.x - b.x, 2) +
+    Math.pow(a.y - b.y, 2) +
+    Math.pow((a.z||0) - (b.z||0), 2)
+  );
+}
+
+function nyalakanKicau() {
+  if (modeKicauAktif) return;
+  modeKicauAktif = true;
+  banner.classList.add('tampil');
+  kucing.forEach(k => k.classList.add('tampil'));
+  document.body.classList.add('mode-kicau');
+  document.getElementById('statusKicau').classList.add('nyala', 'kicau-nyala');
+  if (!sedangMainAudio) {
+    audio.play().catch(() => {});
+    sedangMainAudio = true;
+  }
+}
+
+function matikanKicau() {
+  if (!modeKicauAktif) return;
+  modeKicauAktif = false;
+  banner.classList.remove('tampil');
+  kucing.forEach(k => k.classList.remove('tampil'));
+  document.body.classList.remove('mode-kicau');
+  document.getElementById('statusKicau').classList.remove('nyala', 'kicau-nyala');
+  audio.pause();
+  sedangMainAudio = false;
+}
+
+function renderFrame() {
+  const L = kanvas.width, T = kanvas.height;
+  ctx.clearRect(0, 0, L, T);
+
+  const dataTangan = hasilTerakhir.tangan;
+  const dataMuka   = hasilTerakhir.muka;
+
+  if (dataMuka?.multiFaceLandmarks?.length > 0) {
+    gambarMuka(dataMuka.multiFaceLandmarks[0], L, T);
+    document.getElementById('statusMuka').classList.add('nyala');
+  } else {
+    document.getElementById('statusMuka').classList.remove('nyala');
+  }
+
+  let jarakTerdekat = null;
+
+  if (dataTangan?.multiHandLandmarks?.length > 0) {
+    document.getElementById('statusTangan').classList.add('nyala');
+    for (const lms of dataTangan.multiHandLandmarks) {
+      gambarTangan(lms, L, T);
+      deteksiKibas(lms); // === TAMBAHAN: panggil deteksi kibas ===
+      if (dataMuka?.multiFaceLandmarks?.length > 0) {
+        const j = hitungJarak3D(dataMuka.multiFaceLandmarks[0][13], lms[9]);
+        if (jarakTerdekat === null || j < jarakTerdekat) jarakTerdekat = j;
+      }
+    }
+  } else {
+    document.getElementById('statusTangan').classList.remove('nyala');
+    posXSebelumnya = null; // reset saat tangan hilang
+  }
+
+  const barJarak   = document.getElementById('barJarak');
+  const nilaiJarak = document.getElementById('nilaiJarak');
+
+  if (jarakTerdekat !== null) {
+    barJarak.style.width = Math.max(0, Math.min(100, (1 - jarakTerdekat/0.4)*100)) + '%';
+    nilaiJarak.textContent = jarakTerdekat.toFixed(3);
+    nilaiJarak.classList.toggle('bahaya', jarakTerdekat < AMBANG_JARAK);
+    barJarak.classList.toggle('bahaya', jarakTerdekat < AMBANG_JARAK);
+    jarakTerdekat < AMBANG_JARAK ? nyalakanKicau() : matikanKicau();
+  } else {
+    barJarak.style.width = '0%';
+    nilaiJarak.textContent = '-.---';
+    nilaiJarak.classList.remove('bahaya');
+    barJarak.classList.remove('bahaya');
+    matikanKicau();
+  }
+
+  if (modeKicauAktif) {
+    ctx.strokeStyle = 'rgba(230,51,132,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath();
+    ctx.moveTo(L/2, 0); ctx.lineTo(L/2, T);
+    ctx.moveTo(0, T/2); ctx.lineTo(L, T/2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  if (arahKibas) {
+    ctx.font = 'bold 10px Orbitron, sans-serif';
+    ctx.fillStyle = '#FF69B4';
+    ctx.shadowColor = '#FF69B4';
+    ctx.shadowBlur = 30;
+    ctx.textAlign = 'center';
+    if (arahKibas === 'LEFT') {
+      ctx.fillText('◀ LEFT', L * 0.25, T / 2);
+    } else {
+      ctx.fillText('RIGHT ▶', L * 0.75, T / 2);
+    }
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'left';
+  }
+
+  hitungFps++;
+  const sekarang = performance.now();
+  if (sekarang - waktuFpsLalu >= 1000) {
+    document.getElementById('nilaiFps').textContent = Math.round(hitungFps * 1000 / (sekarang - waktuFpsLalu));
+    hitungFps = 0;
+    waktuFpsLalu = sekarang;
+  }
+
+  requestAnimationFrame(renderFrame);
+}
+
+async function mulai() {
+  isiProgress(10, 'LOADING HANDS MODEL...');
+
+  const deteksiTangan = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  deteksiTangan.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+  deteksiTangan.onResults(r => { hasilTerakhir.tangan = r; });
+
+  isiProgress(35, 'LOADING FACE MESH MODEL...');
+
+  const deteksiMuka = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+  deteksiMuka.setOptions({ maxNumFaces: 1, refineLandmarks: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  deteksiMuka.onResults(r => { hasilTerakhir.muka = r; });
+
+  isiProgress(55, 'INITIALIZING CAMERA...');
+
+  await new Promise((ok, gagal) => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          document.getElementById('statusKam').classList.add('nyala');
+          ok();
+        };
+      })
+      .catch(err => {
+        document.getElementById('statusLoading').textContent = 'CAMERA ACCESS DENIED: ' + err.message;
+        gagal(err);
+      });
+  });
+
+  isiProgress(70, 'WARMING UP NEURAL NETWORK...');
+  sesuaikanKanvas();
+
+  let jumlahFrame = 0;
+  async function prosesFrame() {
+    if (video.readyState >= 2) {
+      await deteksiTangan.send({ image: video });
+      await deteksiMuka.send({ image: video });
+      jumlahFrame++;
+      if (jumlahFrame === 3) isiProgress(90, 'CALIBRATING SENSORS...');
+      if (jumlahFrame === 6) {
+        isiProgress(100, 'SYSTEM ONLINE');
+        setTimeout(() => {
+          const layar = document.getElementById('layarLoading');
+          layar.style.transition = 'opacity 0.8s';
+          layar.style.opacity = '0';
+          setTimeout(() => { layar.style.display = 'none'; renderFrame(); }, 800);
+        }, 400);
+      }
+    }
+    if (jumlahFrame < 8) {
+      setTimeout(prosesFrame, 100);
+    } else {
+      setInterval(async () => {
+        if (video.readyState >= 2) {
+          await deteksiTangan.send({ image: video });
+          await deteksiMuka.send({ image: video });
+        }
+      }, 33);
+    }
+  }
+
+  isiProgress(75, 'PROCESSING TEST FRAMES...');
+  prosesFrame();
+}
+
+window.addEventListener('load', () => {
+  mulai().catch(err => {
+    console.error(err);
+    document.getElementById('statusLoading').textContent = 'ERROR: ' + err.message;
+    document.getElementById('isiProgress').style.background = '#ff003c';
+  });
+});
+</script>
+</body>
+</html>
